@@ -1,34 +1,126 @@
+const { Cliente, Endereco, Reserva } = require("../models");
+
 const ClienteController = {
-    getAll: (req, res) => {
-        res.json([]);
+    getAll: async (req, res) => {
+        const allClientes = await Cliente.findAll({
+            include: [
+                Reserva,
+                Endereco
+            ]
+        });
+        res.json(allClientes);
     },
-    getById: (req, res) => {
+
+    getById: async (req, res) => {
         const { id } = req.params;
+
+        const cliente = await Cliente.findByPk(id, {
+            include: [
+                Reserva,
+                Endereco
+            ]
+        });
+
+        if(!cliente) {
+            return res.status(404).json({ message: "Cliente não encontrado" });
+        }
         
-        res.json({
-            codigo: id,
-            nome: 'Joao',
-            sobrenome: 'Antonio',
-            cpf: '123.123.123-23',
-            endereco: 'Rua da bolacha, 666, Bairro Treloso, Caruaru',
-            telefone: '40028922',
-            email: 'umemail@gmail.com',
-            data_nascimento: '01/11/1589'
-        });
+        res.json(cliente);
     },
-    create: (req, res) => {
-        res.status(201).json(req.body);
+
+    create: async (req, res) => {
+        const { nome, sobrenome, cpf, telefone, email, data_nascimento,
+            endereco = {} } = req.body;
+
+        const { logradouro, numero, bairro, cidade, estado, cep } = endereco;
+        
+        if(!nome || !sobrenome || !cpf || !telefone || !email || !data_nascimento) {
+            return res.status(400).json({ message: "Dados invalidos" });
+        }
+
+        const hasCliente = await Cliente.findOne({ where: { email: email } });
+        if(hasCliente) {
+            return res.status(400).json({ message: "Email já cadastrado" })
+        }
+
+        const newCliente = await Cliente.create(
+            {
+              nome,
+              sobrenome,
+              cpf,
+              telefone,
+              email,
+              data_nascimento,
+              Endereco: {
+                logradouro,
+                numero,
+                bairro,
+                cidade,
+                estado,
+                cep,
+              },
+            },
+            { include: [Endereco] }
+        );
+    
+        res.status(201).json(newCliente);    
     },   
-    update: (req, res) => {
+
+    update: async (req, res) => {
         const { id } = req.params;
-  
-        res.json({
-            codigo: id,
-            ...(req.body || {}),
+        const { nome, sobrenome, cpf, telefone, email, data_nascimento, endereco = {} } = req.body;
+
+        const { logradouro, numero, bairro, cidade, estado, cep } = endereco;
+
+        const cliente = await Cliente.findByPk(id, { include: Endereco });
+
+        if (!cliente) {
+            return res.status(404).json({
+              message: "Cliente não encontrado",
+            });
+        }
+
+        await Cliente.update(
+            { nome, sobrenome, cpf, telefone, email, data_nascimento },
+            { where: { codigo: id } }
+        );
+
+        if (cliente.Endereco?.codigo) {
+            await Endereco.update(
+              { logradouro, numero, bairro, cidade, estado, cep },
+              { where: { codigo: cliente.Endereco.codigo } }
+            );
+        } else {
+            await Endereco.create({
+              logradouro,
+              numero,
+              bairro,
+              cidade,
+              estado,
+              cep,
+              cliente_codigo: id,
+            });
+        }
+
+        const result = await Cliente.findByPk(id, {
+            include: Endereco,
         });
+
+        res.json(result);
     },
-    delete: (req, res) => {
-        res.status(204).json({});
+
+    delete: async (req, res) => {
+        const { id } = req.params;
+
+        const cliente = await Cliente.findByPk(id);
+
+        if (!cliente) {
+            return res.status(404).json({ message: "Cliente não encontrado" });
+        }
+
+        await cliente.destroy();
+
+        res.status(204).send("");
     },
 }
 
