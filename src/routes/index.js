@@ -27,7 +27,7 @@ router.post('/reservas', ReservaController.create);
 router.put('/reservas/:id', ReservaController.update); 
 router.delete('/reservas/:id', ReservaController.delete);
 
-//Rotas Reserva
+//Rotas Cliente
 router.get('/clientes', ClientesController.getAll);
 router.get('/clientes/:id', ClientesController.getById);
 router.post('/clientes', ClientesController.create);
