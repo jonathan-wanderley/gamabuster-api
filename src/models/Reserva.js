@@ -12,7 +12,7 @@ const Reserva = database.define('reserva', {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
-    data_limite_devolucao: {
+    data_devolucao: {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
